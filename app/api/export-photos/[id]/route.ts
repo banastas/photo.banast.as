@@ -10,146 +10,118 @@ function toTitleCase(str: string): string {
 
 export const revalidate = 3600;
 
-export async function GET(_req: Request, context: any) {
-  const id: string = context?.params?.id;
+export async function GET(_req: Request, ctx: any) {
+  const id: string = ctx?.params?.id;
   if (!id) return new NextResponse('bad request', { status: 400 });
 
   const permalink = `https://photo.banast.as/p/${id}`;
   const r = await fetch(permalink, { next: { revalidate } });
   if (!r.ok) return new NextResponse('not found', { status: 404 });
-
   const html = await r.text();
 
+  // og:image
   const og = html.match(
     /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i,
   );
   const image_url = og ? og[1] : null;
 
-  const text = html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|li|h\d)>/gi, '\n')
-    .replace(/<li[^>]*>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;|&#160;/g, ' ')
-    .replace(/\r/g, '')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{2,}/g, '\n')
-    .trim();
+  // narrow to the right-hand meta/sidebar block if present
+  const sideMatch =
+    html.match(/<aside[\s\S]*?<\/aside>/i) ||
+    html.match(
+      /<div[^>]*class=["'][^"']*(sidebar|exif|meta)[^"']*["'][\s\S]*?<\/div>/i,
+    );
+  const side = sideMatch ? sideMatch[0] : html;
 
-  const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
+  // 1) TAGS: collect anchor texts inside the sidebar
+  const tagAnchors = Array.from(
+    side.matchAll(/<a\b[^>]*>([^<]{2,})<\/a>/gi),
+  ).map((m) => toTitleCase(m[1].trim()));
+  // heuristically drop obvious non-place tokens
+  const tags = tagAnchors.filter((t) => !/^ISO\b/i.test(t));
 
-  const reFocal = /\b(\d+(?:\.\d+)?)\s*mm\b/i;
-  const reFstop = /\b[fƒ]\s*\/\s*(\d+(?:\.\d+)?)\b/i;
-  const reShut = /\b(\d+\/\d+s|\d+(?:\.\d+)?s)\b/i;
-  const reISO = /\bISO\s*(\d+)\b/i;
-  const reEV = /\b(-?\d+(?:\.\d+)?\s*ev)\b/i;
-  const reDate =
-    /\b(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s+\d{1,2}:\d{2}(?:AM|PM))\b/i;
-
-  const dateIdx = lines.findIndex((l) => reDate.test(l));
-  let exifStart = -1;
-
-  if (dateIdx !== -1) {
-    for (let i = dateIdx - 1; i >= 0; i--) {
-      const L = lines[i];
-      const exifLike =
-        reFocal.test(L) ||
-        reFstop.test(L) ||
-        reShut.test(L) ||
-        reISO.test(L) ||
-        reEV.test(L);
-      if (exifLike) {
-        exifStart = i;
-        while (exifStart - 1 >= 0) {
-          const P = lines[exifStart - 1];
-          const prev =
-            reFocal.test(P) ||
-            reFstop.test(P) ||
-            reShut.test(P) ||
-            reISO.test(P) ||
-            reEV.test(P);
-          if (prev) exifStart--;
-          else break;
-        }
-        break;
-      }
-    }
+  // 2) LABEL/VALUE helpers (robust to <dt>/<dd>, <strong>, headings)
+  function valueFor(label: string): string | null {
+    const re =
+      new RegExp(
+        `(?:<dt[^>]*>\\s*${label}\\s*<\\/dt>\\s*<dd[^>]*>\\s*([^<][\\s\\S]*?)<\\/(?:dd|p)>|` +
+          `<[^>]*>\\s*${label}\\s*<\\/[^>]+>\\s*<[^>]+>\\s*([^<][\\s\\S]*?)<\\/[^>]+>)`,
+        'i',
+      );
+    const m = side.match(re);
+    if (!m) return null;
+    return (m[1] || m[2] || '').toString().replace(/\s+/g, ' ').trim();
   }
 
-  const tagLines: string[] = [];
-  let camera: string | null = null;
+  const cameraRaw = valueFor('Camera Type');
+  const focalRaw = valueFor('Focal Length');
+  const fstopRaw =
+    valueFor('F-stop') || valueFor('ƒ-stop') || valueFor('F-stop');
+  const shutterRaw = valueFor('Shutter speed');
+  const isoRaw = valueFor('ISO') || valueFor('ISO (If known)');
+  const evRaw =
+    valueFor('Ev value') || valueFor('EV value') || valueFor('Exposure');
+  let taken_at = valueFor('Date Taken');
 
-  if (exifStart > 0) {
-    for (let i = exifStart - 1; i >= 0; i--) {
-      const L = lines[i];
-      if (!L || L.length > 50) break;
+  // normalize values
+  const camera = cameraRaw ? cameraRaw : null;
 
-      const looksExif =
-        reFocal.test(L) ||
-        reFstop.test(L) ||
-        reShut.test(L) ||
-        reISO.test(L) ||
-        reEV.test(L) ||
-        reDate.test(L);
-      if (looksExif) break;
-
-      const looksTag =
-        L === L.toUpperCase() &&
-        !/[0-9/]/.test(L) &&
-        !/^ISO\b/.test(L);
-
-      if (looksTag) {
-        tagLines.unshift(L);
-        continue;
-      }
-      camera = L;
-      break;
-    }
+  let focal_length: string | null = null;
+  if (focalRaw) {
+    const m = focalRaw.match(/(\d+(?:\.\d+)?)/);
+    focal_length = m ? `${m[1]}mm` : focalRaw;
   }
 
-  if (!camera) {
-    const camRe = /\b(Canon EOS [\w\- ]+|Nikon [\w\- ]+|Sony [\w\- ]+)\b/;
-    const mCam = text.match(camRe);
-    if (mCam) camera = mCam[1];
+  let f_stop: string | null = null;
+  if (fstopRaw) {
+    const m = fstopRaw.match(/(?:f|ƒ)[\s/]*([0-9.]+)/i);
+    f_stop = m ? `f/${m[1]}` : fstopRaw.replace(/^Æ’/i, 'f/');
   }
 
-  const tags = tagLines.map(toTitleCase);
+  let shutter: string | null = null;
+  if (shutterRaw) {
+    const m = shutterRaw.match(/(\d+\/\d+s|\d+(?:\.\d+)?s)/i);
+    shutter = m ? m[1] : shutterRaw;
+  }
+
+  let iso: string | null = null;
+  if (isoRaw) {
+    const m = isoRaw.match(/(\d{2,5})/);
+    iso = m ? `ISO ${m[1]}` : isoRaw;
+  }
+
+  let ev: string | null = null;
+  if (evRaw) {
+    const m = evRaw.match(/(-?\d+(?:\.\d+)?)/);
+    ev = m ? `${m[1]}ev` : evRaw.replace(/ev/gi, '').trim() + 'ev';
+  }
+
+  // derive location from tags: prefer multi-word or vowel-containing tokens
   const placeTags = tags.filter(
     (t) => t.length > 3 && (/\s/.test(t) || /[aeiou]/i.test(t)),
   );
   const location =
-    placeTags.slice(0, 2).join(', ') || (tags[0] ?? null);
+    (placeTags.slice(0, 2).join(', ') || tags[0] || null) ?? null;
 
-  const focal = text.match(reFocal)?.[1] ?? null;
-  const fstop = text.match(reFstop)?.[1] ?? null;
-  const shutter = text.match(reShut)?.[1] ?? null;
-  const isoNum = text.match(reISO)?.[1] ?? null;
-  const evNum = text.match(reEV)?.[1] ?? null;
-  const taken = text.match(reDate)?.[1] ?? null;
-
+  // date shape already fine; leave as-is
   const payload = {
     id,
     permalink,
     image_url,
     tags,
     location,
-    camera: camera ?? null,
-    focal_length: focal ? `${focal}mm` : null,
-    f_stop: fstop ? `f/${fstop}` : null,
+    camera,
+    focal_length,
+    f_stop,
     shutter,
-    iso: isoNum ? `ISO ${isoNum}` : null,
-    ev: evNum ? `${evNum}ev` : null,
-    taken_at: taken,
+    iso,
+    ev,
+    taken_at,
   };
 
-  return NextResponse.json(
-    payload,
-    {
-      headers: {
-        'Cache-Control': 'public, s-maxage=3600, max-age=3600',
-      },
+  return NextResponse.json(payload, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=3600, max-age=3600',
     },
-  );
+  });
 }
