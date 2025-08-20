@@ -1,39 +1,50 @@
 // app/api/export-photos/route.ts
 import { NextResponse } from 'next/server';
 
-function textBetween(s: string, a: string, b: string) {
-  const i = s.indexOf(a);
+function between(src: string, a: string, b: string): string | null {
+  const i = src.indexOf(a);
   if (i === -1) return null;
-  const j = s.indexOf(b, i + a.length);
+  const j = src.indexOf(b, i + a.length);
   if (j === -1) return null;
-  return s.slice(i + a.length, j);
+  return src.slice(i + a.length, j);
 }
 
-export const revalidate = 3600; // cache at edge 1h
+export const revalidate = 3600; // 1h edge cache
 
 export async function GET() {
   const base = 'https://photo.banast.as';
-  const r = await fetch(`${base}/sitemap.xml`, { next: { revalidate } });
-  if (!r.ok) return new NextResponse('sitemap fetch failed', { status: 502 });
+  const r = await fetch(`${base}/sitemap.xml`, {
+    next: { revalidate },
+  });
+  if (!r.ok) {
+    return new NextResponse('sitemap fetch failed', { status: 502 });
+  }
   const xml = await r.text();
 
-  // very small XML pull; robust enough for sitemap
   const urls: string[] = [];
   let rest = xml;
   while (true) {
-    const loc = textBetween(rest, '<loc>', '</loc>');
+    const loc = between(rest, '<loc>', '</loc>');
     if (!loc) break;
     urls.push(loc);
-    rest = rest.slice(rest.indexOf('</loc>') + 6);
+    const end = rest.indexOf('</loc>') + '</loc>'.length;
+    rest = rest.slice(end);
   }
 
   const items = urls
-    .filter(u => /\/p\/[^/]+$/.test(u))
-    .map(u => {
+    .filter((u) => /\/p\/[^/]+$/.test(u))
+    .map((u) => {
       const m = u.match(/\/p\/([^/?#]+)$/);
       return { id: m ? m[1] : null, permalink: u };
     })
-    .filter(x => x.id);
+    .filter((x): x is { id: string; permalink: string } => !!x.id);
 
-  return NextResponse.json({ items }, { headers: { 'Cache-Control': 'public, s-maxage=3600, max-age=3600' } });
+  return NextResponse.json(
+    { items },
+    {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, max-age=3600',
+      },
+    },
+  );
 }
