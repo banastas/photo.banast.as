@@ -1,32 +1,31 @@
 // app/api/export-photos/[id]/route.ts
+import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 function toTitleCase(str: string): string {
   return str
     .split(/\s+/)
-    .map((w) =>
-      w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w,
-    )
+    .map(w => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
     .join(' ');
 }
 
 export const revalidate = 3600;
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } },
+  _req: NextRequest,
+  context: { params: { id: string } }
 ) {
-  const id = params.id;
+  const { id } = context.params;
   const permalink = `https://photo.banast.as/p/${id}`;
 
   const r = await fetch(permalink, { next: { revalidate } });
   if (!r.ok) return new NextResponse('not found', { status: 404 });
   const html = await r.text();
 
-  const ogMatch = html.match(
-    /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i,
+  const og = html.match(
+    /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i
   );
-  const image_url = ogMatch ? ogMatch[1] : null;
+  const image_url = og ? og[1] : null;
 
   const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -41,41 +40,32 @@ export async function GET(
     .replace(/\n{2,}/g, '\n')
     .trim();
 
-  const lines = text
-    .split('\n')
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
 
   const reFocal = /\b(\d+(?:\.\d+)?)\s*mm\b/i;
   const reFstop = /\b[fƒ]\s*\/\s*(\d+(?:\.\d+)?)\b/i;
-  const reShut = /\b(\d+\/\d+s|\d+(?:\.\d+)?s)\b/i;
-  const reISO = /\bISO\s*(\d+)\b/i;
-  const reEV = /\b(-?\d+(?:\.\d+)?\s*ev)\b/i;
-  const reDate =
+  const reShut  = /\b(\d+\/\d+s|\d+(?:\.\d+)?s)\b/i;
+  const reISO   = /\bISO\s*(\d+)\b/i;
+  const reEV    = /\b(-?\d+(?:\.\d+)?\s*ev)\b/i;
+  const reDate  =
     /\b(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s+\d{1,2}:\d{2}(?:AM|PM))\b/i;
 
-  const dateIdx = lines.findIndex((l) => reDate.test(l));
+  const dateIdx = lines.findIndex(l => reDate.test(l));
   let exifStart = -1;
   if (dateIdx !== -1) {
     for (let i = dateIdx - 1; i >= 0; i--) {
       const L = lines[i];
       const exifLike =
-        reFocal.test(L) ||
-        reFstop.test(L) ||
-        reShut.test(L) ||
-        reISO.test(L) ||
-        reEV.test(L);
+        reFocal.test(L) || reFstop.test(L) || reShut.test(L) ||
+        reISO.test(L)  || reEV.test(L);
       if (exifLike) {
         exifStart = i;
         while (exifStart - 1 >= 0) {
           const P = lines[exifStart - 1];
-          const prevExifLike =
-            reFocal.test(P) ||
-            reFstop.test(P) ||
-            reShut.test(P) ||
-            reISO.test(P) ||
-            reEV.test(P);
-          if (prevExifLike) exifStart--;
+          const prev =
+            reFocal.test(P) || reFstop.test(P) || reShut.test(P) ||
+            reISO.test(P)  || reEV.test(P);
+          if (prev) exifStart--;
           else break;
         }
         break;
@@ -90,21 +80,15 @@ export async function GET(
     for (let i = exifStart - 1; i >= 0; i--) {
       const L = lines[i];
       if (!L || L.length > 50) break;
-      const isExif =
-        reFocal.test(L) ||
-        reFstop.test(L) ||
-        reShut.test(L) ||
-        reISO.test(L) ||
-        reEV.test(L) ||
-        reDate.test(L);
-      if (isExif) break;
+      const looksExif =
+        reFocal.test(L) || reFstop.test(L) || reShut.test(L) ||
+        reISO.test(L)  || reEV.test(L)   || reDate.test(L);
+      if (looksExif) break;
 
-      const looksLikeTag =
-        L === L.toUpperCase() &&
-        !/[0-9/]/.test(L) &&
-        !/^ISO\b/.test(L);
+      const looksTag =
+        L === L.toUpperCase() && !/[0-9/]/.test(L) && !/^ISO\b/.test(L);
 
-      if (looksLikeTag) {
+      if (looksTag) {
         tagLines.unshift(L);
         continue;
       }
@@ -115,24 +99,23 @@ export async function GET(
 
   if (!camera) {
     const mCam = text.match(
-      /\b(Canon EOS [A-Za-z0-9\- ]+|Nikon [A-Za-z0-9\- ]+|Sony [A-Za-z0-9\- ]+|Fujifilm [A-Za-z0-9\- ]+|Leica [A-Za-z0-9\- ]+|Pentax [A-Za-z0-9\- ]+|iPhone [A-Za-z0-9\- ]+|Pixel [A-Za-z0-9\- ]+|Samsung Galaxy [A-Za-z0-9\- ]+)\b/,
+      /\b(Canon EOS [A-Za-z0-9\- ]+|Nikon [A-Za-z0-9\- ]+|Sony [A-Za-z0-9\- ]+|Fujifilm [A-Za-z0-9\- ]+|Leica [A-Za-z0-9\- ]+|Pentax [A-Za-z0-9\- ]+|iPhone [A-Za-z0-9\- ]+|Pixel [A-Za-z0-9\- ]+|Samsung Galaxy [A-Za-z0-9\- ]+)\b/
     );
     if (mCam) camera = mCam[1];
   }
 
   const tags = tagLines.map(toTitleCase);
   const placeTags = tags.filter(
-    (t) => t.length > 3 && (/\s/.test(t) || /[aeiou]/i.test(t)),
+    t => t.length > 3 && (/\s/.test(t) || /[aeiou]/i.test(t))
   );
-  const location =
-    placeTags.slice(0, 2).join(', ') || (tags[0] ?? null);
+  const location = placeTags.slice(0, 2).join(', ') || (tags[0] ?? null);
 
-  const focal = text.match(reFocal)?.[1] || null;
-  const fstop = text.match(reFstop)?.[1] || null;
-  const shutter = text.match(reShut)?.[1] || null;
-  const isoNum = text.match(reISO)?.[1] || null;
-  const evNum = text.match(reEV)?.[1] || null;
-  const taken = text.match(reDate)?.[1] || null;
+  const focal   = text.match(reFocal)?.[1] ?? null;
+  const fstop   = text.match(reFstop)?.[1] ?? null;
+  const shutter = text.match(reShut)?.[1]  ?? null;
+  const isoNum  = text.match(reISO)?.[1]   ?? null;
+  const evNum   = text.match(reEV)?.[1]    ?? null;
+  const taken   = text.match(reDate)?.[1]  ?? null;
 
   const payload = {
     id,
@@ -146,12 +129,11 @@ export async function GET(
     shutter,
     iso: isoNum ? `ISO ${isoNum}` : null,
     ev: evNum ? `${evNum}ev` : null,
-    taken_at: taken,
+    taken_at: taken
   };
 
-  return NextResponse.json(payload, {
-    headers: {
-      'Cache-Control': 'public, s-maxage=3600, max-age=3600',
-    },
-  });
+  return NextResponse.json(
+    payload,
+    { headers: { 'Cache-Control': 'public, s-maxage=3600, max-age=3600' } }
+  );
 }
