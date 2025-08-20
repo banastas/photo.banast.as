@@ -19,35 +19,39 @@ export async function GET(_req: Request, ctx: any) {
   if (!r.ok) return new NextResponse('not found', { status: 404 });
   const html = await r.text();
 
-  // og:image
   const og = html.match(
     /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i,
   );
   const image_url = og ? og[1] : null;
 
-  // narrow to the right-hand meta/sidebar block if present
   const sideMatch =
     html.match(/<aside[\s\S]*?<\/aside>/i) ||
     html.match(
-      /<div[^>]*class=["'][^"']*(sidebar|exif|meta)[^"']*["'][\s\S]*?<\/div>/i,
+      new RegExp(
+        '<div[^>]*class=["\'][^"\']*' +
+          '(sidebar|exif|meta)[^"\']*["\'][\\s\\S]*?<\\/div>',
+        'i',
+      ),
     );
   const side = sideMatch ? sideMatch[0] : html;
 
-  // 1) TAGS: collect anchor texts inside the sidebar
   const tagAnchors = Array.from(
     side.matchAll(/<a\b[^>]*>([^<]{2,})<\/a>/gi),
   ).map((m) => toTitleCase(m[1].trim()));
-  // heuristically drop obvious non-place tokens
   const tags = tagAnchors.filter((t) => !/^ISO\b/i.test(t));
 
-  // 2) LABEL/VALUE helpers (robust to <dt>/<dd>, <strong>, headings)
   function valueFor(label: string): string | null {
-    const re =
-      new RegExp(
-        `(?:<dt[^>]*>\\s*${label}\\s*<\\/dt>\\s*<dd[^>]*>\\s*([^<][\\s\\S]*?)<\\/(?:dd|p)>|` +
-          `<[^>]*>\\s*${label}\\s*<\\/[^>]+>\\s*<[^>]+>\\s*([^<][\\s\\S]*?)<\\/[^>]+>)`,
-        'i',
-      );
+    const re = new RegExp(
+      '(?:<dt[^>]*>\\s*' +
+        label +
+        '\\s*<\\/dt>\\s*<dd[^>]*>\\s*' +
+        '([^<][\\s\\S]*?)<\\/(?:dd|p)>|' +
+        '<[^>]*>\\s*' +
+        label +
+        '\\s*<\\/[^>]+>\\s*<[^>]+>\\s*' +
+        '([^<][\\s\\S]*?)<\\/[^>]+>)',
+      'i',
+    );
     const m = side.match(re);
     if (!m) return null;
     return (m[1] || m[2] || '').toString().replace(/\s+/g, ' ').trim();
@@ -56,14 +60,13 @@ export async function GET(_req: Request, ctx: any) {
   const cameraRaw = valueFor('Camera Type');
   const focalRaw = valueFor('Focal Length');
   const fstopRaw =
-    valueFor('F-stop') || valueFor('ƒ-stop') || valueFor('F-stop');
+    valueFor('F-stop') || valueFor('ƒ-stop') || valueFor('F stop');
   const shutterRaw = valueFor('Shutter speed');
   const isoRaw = valueFor('ISO') || valueFor('ISO (If known)');
   const evRaw =
     valueFor('Ev value') || valueFor('EV value') || valueFor('Exposure');
-  let taken_at = valueFor('Date Taken');
+  const taken_at = valueFor('Date Taken');
 
-  // normalize values
   const camera = cameraRaw ? cameraRaw : null;
 
   let focal_length: string | null = null;
@@ -96,14 +99,12 @@ export async function GET(_req: Request, ctx: any) {
     ev = m ? `${m[1]}ev` : evRaw.replace(/ev/gi, '').trim() + 'ev';
   }
 
-  // derive location from tags: prefer multi-word or vowel-containing tokens
   const placeTags = tags.filter(
     (t) => t.length > 3 && (/\s/.test(t) || /[aeiou]/i.test(t)),
   );
   const location =
     (placeTags.slice(0, 2).join(', ') || tags[0] || null) ?? null;
 
-  // date shape already fine; leave as-is
   const payload = {
     id,
     permalink,
