@@ -10,15 +10,14 @@ function toTitleCase(str: string): string {
 
 export const revalidate = 3600;
 
-export async function GET(
-  _req: Request,
-  ctx: { params: { id: string } },
-) {
-  const id = ctx.params.id;
-  const permalink = `https://photo.banast.as/p/${id}`;
+export async function GET(_req: Request, context: any) {
+  const id: string = context?.params?.id;
+  if (!id) return new NextResponse('bad request', { status: 400 });
 
+  const permalink = `https://photo.banast.as/p/${id}`;
   const r = await fetch(permalink, { next: { revalidate } });
   if (!r.ok) return new NextResponse('not found', { status: 404 });
+
   const html = await r.text();
 
   const og = html.match(
@@ -51,6 +50,7 @@ export async function GET(
 
   const dateIdx = lines.findIndex((l) => reDate.test(l));
   let exifStart = -1;
+
   if (dateIdx !== -1) {
     for (let i = dateIdx - 1; i >= 0; i--) {
       const L = lines[i];
@@ -85,6 +85,7 @@ export async function GET(
     for (let i = exifStart - 1; i >= 0; i--) {
       const L = lines[i];
       if (!L || L.length > 50) break;
+
       const looksExif =
         reFocal.test(L) ||
         reFstop.test(L) ||
@@ -109,9 +110,8 @@ export async function GET(
   }
 
   if (!camera) {
-    const mCam = text.match(
-      /\b(Canon EOS [\w\- ]+|Nikon [\w\- ]+|Sony [\w\- ]+|Fujifilm [\w\- ]+|Leica [\w\- ]+|Pentax [\w\- ]+|iPhone [\w\- ]+|Pixel [\w\- ]+|Samsung Galaxy [\w\- ]+)\b/,
-    );
+    const camRe = /\b(Canon EOS [\w\- ]+|Nikon [\w\- ]+|Sony [\w\- ]+)\b/;
+    const mCam = text.match(camRe);
     if (mCam) camera = mCam[1];
   }
 
