@@ -1,13 +1,6 @@
 // app/api/export-photos/[id]/route.ts
 import { NextResponse } from 'next/server';
 
-function toTitleCase(str: string): string {
-  return str
-    .split(/\s+/)
-    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
-    .join(' ');
-}
-
 export const revalidate = 3600;
 
 export async function GET(_req: Request, ctx: any) {
@@ -19,110 +12,45 @@ export async function GET(_req: Request, ctx: any) {
   if (!r.ok) return new NextResponse('not found', { status: 404 });
   const html = await r.text();
 
+  // Share image from OG or fallback to /p/<id>/image
   const og = html.match(
     /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i,
   );
-  const image_url = og ? og[1] : null;
+  const share_image_url = og ? og[1] : `${permalink}/image`;
 
-  const sideMatch =
-    html.match(/<aside[\s\S]*?<\/aside>/i) ||
-    html.match(
-      new RegExp(
-        '<div[^>]*class=["\'][^"\']*' +
-          '(sidebar|exif|meta)[^"\']*["\'][\\s\\S]*?<\\/div>',
-        'i',
-      ),
+  // Full image: pull original from any _next/image?url=... occurrence
+  // Prefer the first occurrence in <link rel="preload"> or <img srcset>
+  let full_image_url: string | null = null;
+  const m1 = html.match(/\/_next\/image\?[^"']*url=([^&"'>]+)/i);
+  if (m1 && m1[1]) {
+    try {
+      full_image_url = decodeURIComponent(m1[1]);
+    } catch {
+      full_image_url = null;
+    }
+  }
+
+  // Fallback: if site uses a stable origin for originals, try common pattern
+  if (!full_image_url) {
+    const m2 = html.match(
+      /https?:\/\/photos\.banast\.as\/photo-[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)/i,
     );
-  const side = sideMatch ? sideMatch[0] : html;
-
-  const tagAnchors = Array.from(
-    side.matchAll(/<a\b[^>]*>([^<]{2,})<\/a>/gi),
-  ).map((m) => toTitleCase(m[1].trim()));
-  const tags = tagAnchors.filter((t) => !/^ISO\b/i.test(t));
-
-  function valueFor(label: string): string | null {
-    const re = new RegExp(
-      '(?:<dt[^>]*>\\s*' +
-        label +
-        '\\s*<\\/dt>\\s*<dd[^>]*>\\s*' +
-        '([^<][\\s\\S]*?)<\\/(?:dd|p)>|' +
-        '<[^>]*>\\s*' +
-        label +
-        '\\s*<\\/[^>]+>\\s*<[^>]+>\\s*' +
-        '([^<][\\s\\S]*?)<\\/[^>]+>)',
-      'i',
-    );
-    const m = side.match(re);
-    if (!m) return null;
-    return (m[1] || m[2] || '').toString().replace(/\s+/g, ' ').trim();
+    if (m2) full_image_url = m2[0];
   }
-
-  const cameraRaw = valueFor('Camera Type');
-  const focalRaw = valueFor('Focal Length');
-  const fstopRaw =
-    valueFor('F-stop') || valueFor('ƒ-stop') || valueFor('F stop');
-  const shutterRaw = valueFor('Shutter speed');
-  const isoRaw = valueFor('ISO') || valueFor('ISO (If known)');
-  const evRaw =
-    valueFor('Ev value') || valueFor('EV value') || valueFor('Exposure');
-  const taken_at = valueFor('Date Taken');
-
-  const camera = cameraRaw ? cameraRaw : null;
-
-  let focal_length: string | null = null;
-  if (focalRaw) {
-    const m = focalRaw.match(/(\d+(?:\.\d+)?)/);
-    focal_length = m ? `${m[1]}mm` : focalRaw;
-  }
-
-  let f_stop: string | null = null;
-  if (fstopRaw) {
-    const m = fstopRaw.match(/(?:f|ƒ)[\s/]*([0-9.]+)/i);
-    f_stop = m ? `f/${m[1]}` : fstopRaw.replace(/^Æ’/i, 'f/');
-  }
-
-  let shutter: string | null = null;
-  if (shutterRaw) {
-    const m = shutterRaw.match(/(\d+\/\d+s|\d+(?:\.\d+)?s)/i);
-    shutter = m ? m[1] : shutterRaw;
-  }
-
-  let iso: string | null = null;
-  if (isoRaw) {
-    const m = isoRaw.match(/(\d{2,5})/);
-    iso = m ? `ISO ${m[1]}` : isoRaw;
-  }
-
-  let ev: string | null = null;
-  if (evRaw) {
-    const m = evRaw.match(/(-?\d+(?:\.\d+)?)/);
-    ev = m ? `${m[1]}ev` : evRaw.replace(/ev/gi, '').trim() + 'ev';
-  }
-
-  const placeTags = tags.filter(
-    (t) => t.length > 3 && (/\s/.test(t) || /[aeiou]/i.test(t)),
-  );
-  const location =
-    (placeTags.slice(0, 2).join(', ') || tags[0] || null) ?? null;
 
   const payload = {
     id,
     permalink,
-    image_url,
-    tags,
-    location,
-    camera,
-    focal_length,
-    f_stop,
-    shutter,
-    iso,
-    ev,
-    taken_at,
+    share_image_url,
+    full_image_url,
   };
 
-  return NextResponse.json(payload, {
-    headers: {
-      'Cache-Control': 'public, s-maxage=3600, max-age=3600',
+  return NextResponse.json(
+    payload,
+    {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, max-age=3600',
+      },
     },
-  });
+  );
 }
