@@ -2,7 +2,10 @@
 
 import AdminChildPage from '@/components/AdminChildPage';
 import { PATH_ADMIN_UPLOADS } from '@/app/path';
-import { PhotoFormData, generateTakenAtFields } from './form';
+import {
+  PhotoFormData,
+  generateTakenAtFields,
+} from './form';
 import PhotoForm from './form/PhotoForm';
 import { Tags } from '@/tag';
 import usePhotoFormParent from './form/usePhotoFormParent';
@@ -65,6 +68,7 @@ export default function UploadPageClient({
         <AiButton {...{
           aiContent,
           shouldConfirm: shouldConfirmAiTextGeneration,
+          tooltip: 'Generate AI text for all fields',
         }} />}
       isLoading={pending}
     >
