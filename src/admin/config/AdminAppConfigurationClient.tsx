@@ -10,7 +10,7 @@ import {
 } from 'react';
 import ChecklistRow from '@/components/ChecklistRow';
 import ChecklistGroup from '@/components/ChecklistGroup';
-import { AppConfiguration, SOCIAL_KEYS } from '@/app/config';
+import { AppConfiguration } from '@/app/config';
 import StatusIcon from '@/components/StatusIcon';
 import { labelForStorage } from '@/platforms/storage';
 import { testConnectionsAction } from '@/admin/actions';
@@ -33,13 +33,14 @@ import {
 import ColorDot from '@/photo/color/ColorDot';
 import { Oklch } from '@/photo/color/client';
 import { getOrderedKeyListStatus } from '@/utility/key';
-import { DEFAULT_SOCIAL_KEYS } from '@/social';
+import { DEFAULT_SOCIAL_KEYS, SOCIAL_KEYS } from '@/social';
+import MaskedScroll from '@/components/MaskedScroll';
+import { IoLink } from 'react-icons/io5';
 
 export default function AdminAppConfigurationClient({
   // Storage
   hasDatabase,
   isPostgresSslEnabled,
-  hasVercelPostgres,
   hasRedisStorage,
   hasStorageProvider,
   hasVercelBlobStorage,
@@ -123,6 +124,9 @@ export default function AdminAppConfigurationClient({
   socialKeys,
   areSiteFeedsEnabled,
   isOgTextBottomAligned,
+  // Scripts & Analytics
+  hasPageScriptUrls,
+  pageScriptUrls,
   // Internal
   areInternalToolsEnabled,
   areAdminDebugToolsEnabled,
@@ -249,27 +253,25 @@ export default function AdminAppConfigurationClient({
             {databaseError && renderError({
               connection: { provider: 'Database', error: databaseError},
             })}
-            {hasVercelPostgres
-              ? renderSubStatus('checked', 'Vercel Postgres: connected')
-              : renderSubStatus('optional', <>
-                Vercel Postgres:
+            {hasDatabase
+              ? renderSubStatus(
+                'checked',
+                // eslint-disable-next-line max-len
+                `Postgres: connected${!isPostgresSslEnabled ? ' (SSL disabled)' : ''}`,
+              )
+              : renderSubStatus('missing', <>
+                Postgres:
                 {' '}
                 <AdminLink
                 // eslint-disable-next-line max-len
-                  href="https://vercel.com/docs/storage/vercel-postgres/quickstart#create-a-postgres-database"
+                  href="https://vercel.com/docs/postgres#create-a-postgres-database"
                   externalIcon
                 >
-                  create store
+                  create database
                 </AdminLink>
                 {' '}
                 and connect to project
               </>)}
-            {hasDatabase && !hasVercelPostgres &&
-            renderSubStatus('checked', <>
-              Postgres-compatible: connected
-              {' '}
-              (SSL {isPostgresSslEnabled ? 'enabled' : 'disabled'})
-            </>)}
           </ChecklistRow>
           <ChecklistRow
             title={
@@ -888,6 +890,35 @@ export default function AdminAppConfigurationClient({
             {renderEnvVars(['NEXT_PUBLIC_OG_TEXT_ALIGNMENT'])}
           </ChecklistRow>
         </>;
+      case 'Scripts & Analytics':
+        return <>
+          <ChecklistRow
+            title="Custom page scripts"
+            status={hasPageScriptUrls}
+            optional
+          >
+            {pageScriptUrls.length > 0 &&
+              <div className="mt-2 text-xs space-y-1.5">
+                {pageScriptUrls.map(url =>
+                  <MaskedScroll
+                    key={url}
+                    className={clsx(
+                      'inline-flex items-center gap-1',
+                      'bg-dim rounded-md px-1.5 py-0.5',
+                    )}
+                    direction="horizontal"
+                  >
+                    <IoLink size={14} className="shrink-0 translate-y-[0.5px]"/>
+                    <span className="font-medium text-nowrap">
+                      {url}
+                    </span>
+                  </MaskedScroll>)}
+              </div>}
+            Set environment variable to comma-separated list of URLs
+            to be added to the bottom of the body tag via {'"next/script"'}:
+            {renderEnvVars(['PAGE_SCRIPT_URLS'])}
+          </ChecklistRow>
+        </>;
       case 'Internal':
         return <>
           <ChecklistRow
@@ -938,8 +969,8 @@ export default function AdminAppConfigurationClient({
         ))}
       <div className="pl-11 pr-2 sm:pr-11 mt-4 md:mt-7">
         <div>
-          Changes to environment variables require a redeploy
-          or reboot of local dev server
+          Changes to environment variables require a new deployment
+          to take effect
         </div>
       </div>
     </ScoreCardContainer>

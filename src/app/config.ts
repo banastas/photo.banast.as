@@ -160,7 +160,11 @@ export const POSTGRES_SSL_ENABLED =
 
 // STORAGE: REDIS
 export const HAS_REDIS_STORAGE =
-  Boolean(process.env.KV_URL);
+  Boolean(
+    process.env.KV_URL ||
+    process.env.EXIF_KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_REST_URL,
+  );
 
 // STORAGE: VERCEL BLOB
 export const HAS_VERCEL_BLOB_STORAGE =
@@ -270,6 +274,8 @@ export const SHOW_CAMERAS =
   CATEGORY_VISIBILITY.includes('cameras');
 export const SHOW_LENSES =
   CATEGORY_VISIBILITY.includes('lenses');
+export const SHOW_ALBUMS =
+  CATEGORY_VISIBILITY.includes('albums');
 export const SHOW_TAGS =
   CATEGORY_VISIBILITY.includes('tags');
 export const SHOW_RECIPES =
@@ -353,7 +359,7 @@ export const GEO_PRIVACY_ENABLED =
   process.env.NEXT_PUBLIC_GEO_PRIVACY === '1';
 export const ALLOW_PUBLIC_DOWNLOADS =
   process.env.NEXT_PUBLIC_ALLOW_PUBLIC_DOWNLOADS === '1';
-export const SOCIAL_KEYS = parseSocialKeysFromString(
+export const SOCIAL_NETWORKS = parseSocialKeysFromString(
   // Legacy environment variable
   process.env.NEXT_PUBLIC_HIDE_SOCIAL === '1'
     ? 'none'
@@ -363,6 +369,15 @@ export const SITE_FEEDS_ENABLED =
   process.env.NEXT_PUBLIC_SITE_FEEDS === '1';
 export const OG_TEXT_BOTTOM_ALIGNMENT =
   (process.env.NEXT_PUBLIC_OG_TEXT_ALIGNMENT ?? '').toUpperCase() === 'BOTTOM';
+
+// SCRIPTS & ANALYTICS
+
+export const PAGE_SCRIPT_URLS = process.env.PAGE_SCRIPT_URLS
+  ? process.env.PAGE_SCRIPT_URLS
+    .split(',')
+    .map(url => url.trim().toLocaleLowerCase())
+    .filter(url => url.startsWith('https://'))
+  : [];
 
 // INTERNAL
 
@@ -376,10 +391,6 @@ export const APP_CONFIGURATION = {
   // Storage
   hasDatabase: HAS_DATABASE,
   isPostgresSslEnabled: POSTGRES_SSL_ENABLED,
-  hasVercelPostgres: (
-    /\/verceldb\?/.test(process.env.POSTGRES_URL ?? '') ||
-    /\.vercel-storage\.com\//.test(process.env.POSTGRES_URL ?? '')
-  ),
   hasRedisStorage: HAS_REDIS_STORAGE,
   hasVercelBlobStorage: HAS_VERCEL_BLOB_STORAGE,
   hasCloudflareR2Storage: HAS_CLOUDFLARE_R2_STORAGE,
@@ -484,9 +495,12 @@ export const APP_CONFIGURATION = {
   isGeoPrivacyEnabled: GEO_PRIVACY_ENABLED,
   arePublicDownloadsEnabled: ALLOW_PUBLIC_DOWNLOADS,
   hasSocialKeys: Boolean(process.env.NEXT_PUBLIC_SOCIAL_NETWORKS),
-  socialKeys: SOCIAL_KEYS,
+  socialKeys: SOCIAL_NETWORKS,
   areSiteFeedsEnabled: SITE_FEEDS_ENABLED,
   isOgTextBottomAligned: OG_TEXT_BOTTOM_ALIGNMENT,
+  // Scripts & Analytics
+  hasPageScriptUrls: PAGE_SCRIPT_URLS.length > 0,
+  pageScriptUrls: PAGE_SCRIPT_URLS,
   // Internal
   areInternalToolsEnabled: (
     ADMIN_DEBUG_TOOLS_ENABLED ||
@@ -504,23 +518,37 @@ export const APP_CONFIGURATION = {
   commitUrl: VERCEL_GIT_COMMIT_URL,
 };
 
-const ALL_LEGACY_ENV_VARS = [
-  'NEXT_PUBLIC_SITE_DOMAIN',
-  'NEXT_PUBLIC_SITE_DESCRIPTION',
-  'NEXT_PUBLIC_SITE_TITLE',
-  'NEXT_PUBLIC_SITE_ABOUT',
-  'NEXT_PUBLIC_STATICALLY_OPTIMIZE_PAGES',
-  'NEXT_PUBLIC_STATICALLY_OPTIMIZE_OG_IMAGES',
-  'NEXT_PUBLIC_PRO_MODE',
-  'NEXT_PUBLIC_HIDE_SOCIAL',
-  'NEXT_PUBLIC_SITE_DOMAIN',
-];
+const ALL_DEPRECATED_ENV_VARS = [{
+  old: 'NEXT_PUBLIC_SITE_DOMAIN',
+  replacement: 'NEXT_PUBLIC_DOMAIN',
+}, {
+  old: 'NEXT_PUBLIC_SITE_DESCRIPTION',
+  replacement: 'NEXT_PUBLIC_NAV_CAPTION',
+}, {
+  old: 'NEXT_PUBLIC_SITE_TITLE',
+  replacement: 'NEXT_PUBLIC_META_TITLE',
+}, {
+  old: 'NEXT_PUBLIC_SITE_ABOUT',
+  replacement: 'NEXT_PUBLIC_PAGE_ABOUT',
+}, {
+  old: 'NEXT_PUBLIC_STATICALLY_OPTIMIZE_PAGES',
+  replacement: 'NEXT_PUBLIC_STATICALLY_OPTIMIZE_PHOTOS',
+}, {
+  old: 'NEXT_PUBLIC_STATICALLY_OPTIMIZE_OG_IMAGES',
+  replacement: 'NEXT_PUBLIC_STATICALLY_OPTIMIZE_PHOTO_OG_IMAGES',
+}, {
+  old: 'NEXT_PUBLIC_PRO_MODE',
+  replacement: 'NEXT_PUBLIC_PRESERVE_ORIGINAL_UPLOADS',
+}, {
+  old: 'NEXT_PUBLIC_HIDE_SOCIAL',
+  replacement: 'NEXT_PUBLIC_SOCIAL_NETWORKS',
+}];
 
-export const USED_LEGACY_ENV_VARS = ALL_LEGACY_ENV_VARS
-  .filter(variable => Boolean(process.env[variable]));
+export const USED_DEPRECATED_ENV_VARS = ALL_DEPRECATED_ENV_VARS
+  .filter(({ old }) => Boolean(process.env[old]));
 
-export const DOES_APP_HAVE_LEGACY_ENV_VARS =
-  USED_LEGACY_ENV_VARS.length > 0;
+export const HAS_DEPRECATED_ENV_VARS =
+  USED_DEPRECATED_ENV_VARS.length > 0;
 
 export const IS_APP_READY =
   APP_CONFIGURATION.hasDatabase &&
