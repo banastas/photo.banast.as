@@ -17,6 +17,7 @@ export interface EntityLinkExternalProps {
   ref?: RefObject<HTMLSpanElement | null>
   type?: LabeledIconType
   badged?: boolean
+  badgeType?: ComponentProps<typeof Badge>['type']
   contrast?: ComponentProps<typeof Badge>['contrast']
   uppercase?: boolean
   prefetch?: boolean
@@ -38,8 +39,10 @@ export default function EntityLink({
   iconWide,
   type,
   badged,
+  badgeType = 'small',
   contrast = 'medium',
   path = '', // Make link optional for debugging purposes
+  pathTarget,
   hoverCount = 0,
   hoverType = 'auto',
   hoverQueryOptions,
@@ -60,6 +63,7 @@ export default function EntityLink({
   labelSmall?: ReactNode
   iconWide?: boolean
   path?: string
+  pathTarget?: ComponentProps<typeof LinkWithStatus>['target']
   prefetch?: boolean
   title?: string
   action?: ReactNode
@@ -70,7 +74,11 @@ export default function EntityLink({
 } & EntityLinkExternalProps) {
   const [isLoading, setIsLoading] = useState(false);
 
-  const hasBadgeIcon = Boolean(iconBadgeStart || iconBadgeEnd);
+  const hasBadgeIcon = Boolean(
+    iconBadgeStart ||
+    iconBadgeEnd ||
+    badgeType === 'medium',
+  );
 
   const classForContrast = () => {
     switch (contrast) {
@@ -119,12 +127,15 @@ export default function EntityLink({
       )}
       isLoading={isLoading}
       setIsLoading={setIsLoading}
+      target={pathTarget}
     >
       <LabeledIcon {...{
-        icon:
-          (badged && hasBadgeIcon && !useForHover) ? undefined : icon,
-        iconWide:
-          (badged && hasBadgeIcon && !useForHover) ? undefined : iconWide,
+        icon: badged && hasBadgeIcon && !useForHover
+          ? undefined
+          : icon,
+        iconWide: badged && hasBadgeIcon && !useForHover
+          ? undefined
+          : iconWide,
         prefetch,
         title,
         type: useForHover ? 'icon-first' : type,
@@ -138,18 +149,24 @@ export default function EntityLink({
       }}>
         {badged && !useForHover
           ? <Badge
-            type="small"
+            type={badgeType}
             contrast={contrast}
             className={clsx(
               'translate-y-[-0.5px]',
-              hasBadgeIcon && '*:flex *:items-center *:gap-1',
+              hasBadgeIcon && '*:flex *:items-center',
+              hasBadgeIcon && badgeType === 'medium'
+                ? '*:gap-[5px]'
+                : '*:gap-1',
+              suppressSpinner && isLoading && 'opacity-50',
             )}
             uppercase
             interactive
           >
-            {iconBadgeStart}
+            {badgeType === 'medium' &&
+              <span className="translate-y-[0.5px]">{icon}</span>}
+            {badgeType !== 'medium' && iconBadgeStart}
             {renderLabel}
-            {iconBadgeEnd}
+            {badgeType !== 'medium' && iconBadgeEnd}
           </Badge>
           : <span className={clsx(
             'text-content',
@@ -170,6 +187,7 @@ export default function EntityLink({
         'max-w-full overflow-hidden select-none',
         // Underline link text when action is hovered
         '[&:has(.action:hover)_.text-content]:underline',
+        !truncate && 'shrink-0',
         className,
       )}
     >

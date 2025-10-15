@@ -17,12 +17,15 @@ export default function PhotoGrid({
   photos,
   selectedPhoto,
   prioritizeInitialPhotos,
+  className,
+  classNamePhoto,
   animate = true,
   canStart,
   animateOnFirstLoadOnly,
   staggerOnFirstLoadOnly = true,
   additionalTile,
   small,
+  selectable = true,
   onLastPhotoVisible,
   onAnimationComplete,
   ...categories
@@ -30,12 +33,15 @@ export default function PhotoGrid({
   photos: Photo[]
   selectedPhoto?: Photo
   prioritizeInitialPhotos?: boolean
+  className?: string
+  classNamePhoto?: string
   animate?: boolean
   canStart?: boolean
   animateOnFirstLoadOnly?: boolean
   staggerOnFirstLoadOnly?: boolean
   additionalTile?: ReactNode
   small?: boolean
+  selectable?: boolean
   onLastPhotoVisible?: () => void
   onAnimationComplete?: () => void
 } & PhotoSetCategory) {
@@ -50,7 +56,9 @@ export default function PhotoGrid({
   } = useSelectPhotosState();
 
   return (
-    <div {...{ [DATA_KEY_PHOTO_GRID]: true }}>
+    <div
+      {...{ [DATA_KEY_PHOTO_GRID]: selectable, className }}
+    >
       <AnimateItems
         className={clsx(
           'grid',
@@ -89,6 +97,7 @@ export default function PhotoGrid({
                 'flex w-full h-full',
                 // Prevent photo navigation when selecting
                 isSelectingPhotos && 'pointer-events-none',
+                classNamePhoto,
               )}
               {...{
                 photo,
