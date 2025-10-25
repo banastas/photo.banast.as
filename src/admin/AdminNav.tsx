@@ -15,6 +15,9 @@ import {
 import AdminNavClient from './AdminNavClient';
 import { getAppText } from '@/i18n/state/server';
 import { getAlbumsWithMeta } from '@/album/query';
+import type { Albums } from '@/album';
+import type { Tags } from '@/tag';
+import type { Recipes } from '@/recipe';
 
 export default async function AdminNav() {
   const [
@@ -34,11 +37,14 @@ export default async function AdminNav() {
         console.error(`Error getting blob upload urls: ${e}`);
         return 0;
       }),
-    getAlbumsWithMeta().then(albums => albums.length)
+    (getAlbumsWithMeta() as Promise<Albums>)
+      .then(albums => albums.length)
       .catch(() => 0),
-    getUniqueTagsCached().then(tags => tags.length)
+    (getUniqueTagsCached() as Promise<Tags>)
+      .then(tags => tags.length)
       .catch(() => 0),
-    getUniqueRecipesCached().then(recipes => recipes.length)
+    (getUniqueRecipesCached() as Promise<Recipes>)
+      .then(recipes => recipes.length)
       .catch(() => 0),
     getPhotosMostRecentUpdateCached().catch(() => undefined),
   ]);
