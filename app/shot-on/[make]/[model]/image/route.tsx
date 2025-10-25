@@ -1,5 +1,5 @@
 import { getPhotosCached } from '@/photo/cache';
-import { CameraProps, formatCameraParams } from '@/camera';
+import { CameraProps, formatCameraParams, type Cameras } from '@/camera';
 import {
   IMAGE_OG_DIMENSION_SMALL,
   MAX_PHOTOS_TO_SHOW_PER_CATEGORY,
@@ -14,7 +14,7 @@ import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'cameras',
   'image',
-  getUniqueCameras,
+  () => getUniqueCameras() as Promise<Cameras>,
   cameras => cameras.map(({ camera }) => formatCameraParams(camera)),
 );
 

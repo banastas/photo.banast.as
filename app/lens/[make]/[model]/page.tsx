@@ -9,6 +9,7 @@ import {
   getLensFromParams,
   LensProps,
   safelyGenerateLensStaticParams,
+  type Lenses,
 } from '@/lens';
 import {
   staticallyGenerateCategoryIfConfigured,
@@ -27,7 +28,7 @@ const getPhotosLensDataCachedCached = cache((
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'lenses',
   'page',
-  getUniqueLenses,
+  () => getUniqueLenses() as Promise<Lenses>,
   safelyGenerateLensStaticParams,
 );
 

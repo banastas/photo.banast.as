@@ -7,7 +7,11 @@ import { getIBMPlexMono } from '@/app/font';
 import { ImageResponse } from 'next/og';
 import { getImageResponseCacheControlHeaders } from '@/image-response/cache';
 import FocalLengthImageResponse from '@/focal/FocalLengthImageResponse';
-import { formatFocalLength, getFocalLengthFromString, type FocalLengths } from '@/focal';
+import {
+  formatFocalLength,
+  getFocalLengthFromString,
+  type FocalLengths,
+} from '@/focal';
 import { getUniqueFocalLengths } from '@/photo/query';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 

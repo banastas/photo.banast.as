@@ -11,6 +11,7 @@ import {
   getLensFromParams,
   LensProps,
   safelyGenerateLensStaticParams,
+  type Lenses,
 } from '@/lens';
 import LensImageResponse from '@/lens/LensImageResponse';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
@@ -18,7 +19,7 @@ import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'lenses',
   'image',
-  getUniqueLenses,
+  () => getUniqueLenses() as Promise<Lenses>,
   safelyGenerateLensStaticParams,
 );
 
