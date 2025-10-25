@@ -21,10 +21,12 @@ export default async function AlbumPageEdit({
 
   const albumSlug = decodeURIComponent(albumFromParams);
 
-  const album = await getAlbumFromSlug(albumSlug);
+  const albumOrUndefined = await getAlbumFromSlug(albumSlug);
 
-  if (!album) { redirect(PATH_ADMIN); }
-  
+  if (!albumOrUndefined) { redirect(PATH_ADMIN); }
+
+  const album = albumOrUndefined;
+
   const [
     { count },
     photos,

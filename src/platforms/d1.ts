@@ -53,10 +53,9 @@ const convertQueryToSQLite = (
 
     // Replace with JSON search - SQLite json_each
     const replacement =
-      `EXISTS (SELECT 1 FROM json_each(${columnName}) ` +
-      `WHERE json_each.value = ?)`;
+      'EXISTS (SELECT 1 FROM json_each(' + columnName + ') ' +
+      'WHERE json_each.value = ?)';
     converted = converted.replace(anyMatchResult[0], replacement);
-    valueOffset += replacement.length - anyMatchResult[0].length;
   }
 
   // Replace PostgreSQL-specific syntax with SQLite equivalents
