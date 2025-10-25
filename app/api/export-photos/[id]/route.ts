@@ -30,7 +30,7 @@ export async function GET(_req: Request, ctx: any) {
     }
   }
 
-  // Fallback: if site uses a stable origin for originals, try common pattern
+  // Fallback: if site uses a stable origin for originals, try pattern
   if (!full_image_url) {
     const m2 = html.match(
       /https?:\/\/photos\.banast\.as\/photo-[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)/i,
