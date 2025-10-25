@@ -9,12 +9,12 @@ import { getImageResponseCacheControlHeaders } from '@/image-response/cache';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 import AlbumImageResponse from '@/album/AlbumImageResponse';
 import { getAlbumFromSlug, getAlbumsWithMeta } from '@/album/query';
-import type { Album } from '@/album';
+import type { Album, Albums } from '@/album';
 
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'albums',
   'image',
-  getAlbumsWithMeta,
+  () => getAlbumsWithMeta() as Promise<Albums>,
   albums => albums.map(({ album }) => ({ album: album.slug })),
 );
 

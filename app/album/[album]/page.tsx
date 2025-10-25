@@ -12,7 +12,7 @@ import {
   getAlbumsWithMeta,
   getTagsForAlbum,
 } from '@/album/query';
-import { Album, generateMetaForAlbum } from '@/album';
+import { Album, Albums, generateMetaForAlbum } from '@/album';
 import { getPhotosAlbumDataCached } from '@/album/data';
 
 const getPhotosAlbumDataCachedCached = cache((album: Album) =>
@@ -21,7 +21,7 @@ const getPhotosAlbumDataCachedCached = cache((album: Album) =>
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'albums',
   'page',
-  getAlbumsWithMeta,
+  () => getAlbumsWithMeta() as Promise<Albums>,
   albums => albums.map(({ album }) => ({ album: album.slug })),
 );
 
