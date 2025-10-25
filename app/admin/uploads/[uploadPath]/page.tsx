@@ -16,6 +16,10 @@ import { getRecipeTitleForData } from '@/photo/query';
 import { getAlbumsWithMeta } from '@/album/query';
 import { addAiTextToFormData } from '@/photo/ai/server';
 import AppGrid from '@/components/AppGrid';
+import type { Albums } from '@/album';
+import type { Tags } from '@/tag';
+import type { Recipes } from '@/recipe';
+import type { Films } from '@/film';
 
 export const maxDuration = 60;
 
@@ -39,10 +43,10 @@ export default async function UploadPage({ params, searchParams }: Params) {
       shouldStripGpsData,
       error,
     }] = await Promise.all([
-    getAlbumsWithMeta(),
-    getUniqueRecipesCached(),
-    getUniqueFilmsCached(),
-    getUniqueTagsCached(),
+    getAlbumsWithMeta() as Promise<Albums>,
+    getUniqueRecipesCached() as Promise<Recipes>,
+    getUniqueFilmsCached() as Promise<Films>,
+    getUniqueTagsCached() as Promise<Tags>,
     extractImageDataFromBlobPath(uploadPath, {
       includeInitialPhotoFields: true,
       generateBlurData: BLUR_ENABLED,

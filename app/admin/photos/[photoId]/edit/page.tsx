@@ -18,6 +18,10 @@ import {
   getStorageUrlsForPhoto,
 } from '@/photo/storage';
 import { getAlbumsWithMeta, getAlbumTitlesForPhoto } from '@/album/query';
+import type { Albums } from '@/album';
+import type { Tags } from '@/tag';
+import type { Recipes } from '@/recipe';
+import type { Films } from '@/film';
 
 export default async function PhotoEditPage({
   params,
@@ -35,11 +39,11 @@ export default async function PhotoEditPage({
     uniqueFilms,
   ] = await Promise.all([
     getPhotoNoStore(photoId, true),
-    getAlbumTitlesForPhoto(photoId),
-    getAlbumsWithMeta(),
-    getUniqueTagsCached(),
-    getUniqueRecipesCached(),
-    getUniqueFilmsCached(),
+    getAlbumTitlesForPhoto(photoId) as Promise<string[]>,
+    getAlbumsWithMeta() as Promise<Albums>,
+    getUniqueTagsCached() as Promise<Tags>,
+    getUniqueRecipesCached() as Promise<Recipes>,
+    getUniqueFilmsCached() as Promise<Films>,
   ]);
 
   if (!photo) { redirect(PATH_ADMIN); }
