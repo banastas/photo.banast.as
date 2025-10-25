@@ -9,11 +9,12 @@ import { ImageResponse } from 'next/og';
 import { getImageResponseCacheControlHeaders } from '@/image-response/cache';
 import { getUniqueFilms } from '@/photo/query';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
+import type { Films } from '@/film';
 
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'films',
   'image',
-  getUniqueFilms,
+  () => getUniqueFilms() as Promise<Films>,
   films => films.map(({ film }) => ({ film })),
 );
 

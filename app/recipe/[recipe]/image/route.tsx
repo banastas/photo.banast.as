@@ -9,11 +9,12 @@ import { getImageResponseCacheControlHeaders } from '@/image-response/cache';
 import { getUniqueRecipes } from '@/photo/query';
 import RecipeImageResponse from '@/recipe/RecipeImageResponse';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
+import type { Recipes } from '@/recipe';
 
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'recipes',
   'image',
-  getUniqueRecipes,
+  () => getUniqueRecipes() as Promise<Recipes>,
   recipes => recipes.map(({ recipe }) => ({ recipe })),
 );
 

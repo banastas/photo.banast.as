@@ -9,13 +9,14 @@ import RecipeOverview from '@/recipe/RecipeOverview';
 import { getPhotosRecipeDataCached } from '@/recipe/data';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 import { getAppText } from '@/i18n/state/server';
+import type { Recipes } from '@/recipe';
 
 const getPhotosRecipeDataCachedCached = cache(getPhotosRecipeDataCached);
 
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'recipes',
   'page',
-  getUniqueRecipes,
+  () => getUniqueRecipes() as Promise<Recipes>,
   recipes => recipes.map(({ recipe }) => ({ recipe })),
 );
 

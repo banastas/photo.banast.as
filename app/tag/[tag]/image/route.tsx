@@ -8,12 +8,13 @@ import { getIBMPlexMono } from '@/app/font';
 import { ImageResponse } from 'next/og';
 import { getImageResponseCacheControlHeaders } from '@/image-response/cache';
 import { getUniqueTags } from '@/photo/query';
+import type { Tags } from '@/tag';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'tags',
   'image',
-  getUniqueTags,
+  () => getUniqueTags() as Promise<Tags>,
   tags => tags.map(({ tag }) => ({ tag })),
 );
 

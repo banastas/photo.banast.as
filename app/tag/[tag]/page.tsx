@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 import { getAppText } from '@/i18n/state/server';
+import type { Tags } from '@/tag';
 
 const getPhotosTagDataCachedCached = cache((tag: string) =>
   getPhotosTagDataCached({ tag, limit: INFINITE_SCROLL_GRID_INITIAL}));
@@ -16,7 +17,7 @@ const getPhotosTagDataCachedCached = cache((tag: string) =>
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'tags',
   'page',
-  getUniqueTags,
+  () => getUniqueTags() as Promise<Tags>,
   tags => tags.map(({ tag }) => ({ tag })),
 );
 

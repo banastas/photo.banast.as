@@ -9,6 +9,7 @@ import { PATH_ROOT } from '@/app/path';
 import { redirect } from 'next/navigation';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 import { getAppText } from '@/i18n/state/server';
+import type { Films } from '@/film';
 
 const getPhotosFilmDataCachedCached = cache((film: string) =>
   getPhotosFilmDataCached({ film, limit: INFINITE_SCROLL_GRID_INITIAL }));
@@ -16,7 +17,7 @@ const getPhotosFilmDataCachedCached = cache((film: string) =>
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'films',
   'page',
-  getUniqueFilms,
+  () => getUniqueFilms() as Promise<Films>,
   films => films.map(({ film }) => ({ film })),
 );
 
