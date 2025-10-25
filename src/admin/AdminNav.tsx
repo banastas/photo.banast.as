@@ -46,7 +46,8 @@ export default async function AdminNav() {
     (getUniqueRecipesCached() as Promise<Recipes>)
       .then(recipes => recipes.length)
       .catch(() => 0),
-    getPhotosMostRecentUpdateCached().catch(() => undefined),
+    (getPhotosMostRecentUpdateCached() as Promise<Date | undefined>)
+      .catch(() => undefined),
   ]);
 
   const appText = await getAppText();
