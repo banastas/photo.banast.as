@@ -18,6 +18,8 @@ import { isTagFavs } from '@/tag';
 import { BASE_URL, GRID_HOMEPAGE_ENABLED } from '@/app/config';
 import { getPhotoIdsAndUpdatedAt } from '@/photo/query';
 
+type PhotoIdAndUpdatedAt = { id: string; updatedAt: Date };
+
 // Cache for 24 hours
 export const revalidate = 86_400;
 
@@ -53,7 +55,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       films: [],
       focalLengths: [],
     })),
-    getPhotoIdsAndUpdatedAt().catch(() => []),
+    (getPhotoIdsAndUpdatedAt() as Promise<PhotoIdAndUpdatedAt[]>)
+      .catch(() => []),
   ]);
 
   const lastModifiedSite = [
