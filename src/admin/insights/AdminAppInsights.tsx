@@ -11,6 +11,12 @@ import {
 import AdminAppInsightsClient from './AdminAppInsightsClient';
 import { getAllInsights, getGitHubMetaForCurrentApp } from '.';
 import { USED_DEPRECATED_ENV_VARS } from '@/app/config';
+import type { Cameras } from '@/camera';
+import type { Lenses } from '@/lens';
+import type { Tags } from '@/tag';
+import type { Recipes } from '@/recipe';
+import type { Films } from '@/film';
+import type { FocalLengths } from '@/focal';
 
 export default async function AdminAppInsights() {
   const [
@@ -28,15 +34,15 @@ export default async function AdminAppInsights() {
   ] = await Promise.all([
     getPhotosMeta({ hidden: 'include' }),
     getPhotosMeta({ hidden: 'only' }),
-    getPhotosInNeedOfUpdateCount(),
+    (getPhotosInNeedOfUpdateCount() as Promise<number>),
     getPhotosMeta({ maximumAspectRatio: 0.9 }),
     getGitHubMetaForCurrentApp(),
-    getUniqueCameras(),
-    getUniqueLenses(),
-    getUniqueTags(),
-    getUniqueRecipes(),
-    getUniqueFilms(),
-    getUniqueFocalLengths(),
+    (getUniqueCameras() as Promise<Cameras>),
+    (getUniqueLenses() as Promise<Lenses>),
+    (getUniqueTags() as Promise<Tags>),
+    (getUniqueRecipes() as Promise<Recipes>),
+    (getUniqueFilms() as Promise<Films>),
+    (getUniqueFocalLengths() as Promise<FocalLengths>),
   ]);
 
   return (
