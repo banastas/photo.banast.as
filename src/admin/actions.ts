@@ -19,6 +19,9 @@ import {
   indicatorStatusForSignificantInsights,
 } from './insights';
 import { getAlbumsWithMeta } from '@/album/query';
+import type { Albums } from '@/album';
+import type { Tags } from '@/tag';
+import type { Recipes } from '@/recipe';
 
 export type AdminData = Awaited<ReturnType<typeof getAdminDataAction>>;
 
@@ -48,13 +51,13 @@ export const getAdminDataAction = async () =>
           console.error(`Error getting blob upload urls: ${e}`);
           return 0;
         }),
-      getAlbumsWithMeta()
+      (getAlbumsWithMeta() as Promise<Albums>)
         .then(albums => albums.length)
         .catch(() => 0),
-      getUniqueTags()
+      (getUniqueTags() as Promise<Tags>)
         .then(tags => tags.length)
         .catch(() => 0),
-      getUniqueRecipes()
+      (getUniqueRecipes() as Promise<Recipes>)
         .then(recipes => recipes.length)
         .catch(() => 0),
     ]);
