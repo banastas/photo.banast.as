@@ -9,11 +9,12 @@ import { ImageResponse } from 'next/og';
 import { getImageResponseCacheControlHeaders } from '@/image-response/cache';
 import { getUniqueYears } from '@/photo/query';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
+import type { Years } from '@/year';
 
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'years',
   'image',
-  getUniqueYears,
+  () => getUniqueYears() as Promise<Years>,
   years => years.map(({ year }) => ({ year })),
 );
 

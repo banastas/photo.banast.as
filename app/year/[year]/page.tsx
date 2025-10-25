@@ -9,6 +9,7 @@ import { PATH_ROOT } from '@/app/path';
 import { redirect } from 'next/navigation';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 import { getAppText } from '@/i18n/state/server';
+import type { Years } from '@/year';
 
 const getPhotosYearDataCachedCached = cache((year: string) =>
   getPhotosYearDataCached({ year, limit: INFINITE_SCROLL_GRID_INITIAL }));
@@ -16,7 +17,7 @@ const getPhotosYearDataCachedCached = cache((year: string) =>
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'years',
   'page',
-  getUniqueYears,
+  () => getUniqueYears() as Promise<Years>,
   years => years.map(({ year }) => ({ year })),
 );
 
