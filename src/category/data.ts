@@ -19,11 +19,16 @@ import {
   SHOW_RECENTS,
   SHOW_ALBUMS,
 } from '@/app/config';
-import { createLensKey } from '@/lens';
-import { sortTagsByCount } from '@/tag';
+import { createLensKey, type Lenses } from '@/lens';
+import { sortTagsByCount, type Tags } from '@/tag';
 import { sortCategoriesByCount } from '@/category';
-import { sortFocalLengths } from '@/focal';
+import { sortFocalLengths, type FocalLengths } from '@/focal';
 import { getAlbumsWithMeta } from '@/album/query';
+import type { Albums } from '@/album';
+import type { Years } from '@/year';
+import type { Cameras } from '@/camera';
+import type { Recipes } from '@/recipe';
+import type { Films } from '@/film';
 
 type CategoryData = Awaited<ReturnType<typeof getDataForCategories>>;
 
@@ -50,41 +55,41 @@ export const getDataForCategories = () => Promise.all([
       .catch(() => [])
     : undefined,
   SHOW_YEARS
-    ? getUniqueYears()
+    ? (getUniqueYears() as Promise<Years>)
       .catch(() => [])
     : undefined,
   SHOW_CAMERAS
-    ? getUniqueCameras()
+    ? (getUniqueCameras() as Promise<Cameras>)
       .then(sortCategoriesByCount)
       .catch(() => [])
     : undefined,
   SHOW_LENSES
-    ? getUniqueLenses()
+    ? (getUniqueLenses() as Promise<Lenses>)
       .then(sortCategoriesByCount)
       .catch(() => [])
     : undefined,
   SHOW_TAGS
-    ? getUniqueTags()
+    ? (getUniqueTags() as Promise<Tags>)
       .then(sortTagsByCount)
       .catch(() => [])
     : undefined,
   SHOW_RECIPES
-    ? getUniqueRecipes()
+    ? (getUniqueRecipes() as Promise<Recipes>)
       .then(sortCategoriesByCount)
       .catch(() => [])
     : undefined,
   SHOW_FILMS
-    ? getUniqueFilms()
+    ? (getUniqueFilms() as Promise<Films>)
       .then(sortCategoriesByCount)
       .catch(() => [])
     : undefined,
   SHOW_FOCAL_LENGTHS
-    ? getUniqueFocalLengths()
+    ? (getUniqueFocalLengths() as Promise<FocalLengths>)
       .then(sortFocalLengths)
       .catch(() => [])
     : undefined,
   SHOW_ALBUMS
-    ? getAlbumsWithMeta()
+    ? (getAlbumsWithMeta() as Promise<Albums>)
       .catch(() => [])
     : undefined,
 ]).then(([

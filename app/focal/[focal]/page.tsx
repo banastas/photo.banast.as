@@ -1,4 +1,8 @@
-import { generateMetaForFocalLength, getFocalLengthFromString, type FocalLengths } from '@/focal';
+import {
+  generateMetaForFocalLength,
+  getFocalLengthFromString,
+  type FocalLengths,
+} from '@/focal';
 import FocalLengthOverview from '@/focal/FocalLengthOverview';
 import { getPhotosFocalLengthDataCached } from '@/focal/data';
 import { INFINITE_SCROLL_GRID_INITIAL } from '@/photo';
