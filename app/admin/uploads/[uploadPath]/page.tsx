@@ -68,10 +68,10 @@ export default async function UploadPage({ params, searchParams }: Params) {
     formDataFromExif,
   ] = await Promise.all([
     _formDataFromExif?.recipeData && _formDataFromExif.film
-      ? getRecipeTitleForData(
-        _formDataFromExif.recipeData, 
+      ? (getRecipeTitleForData(
+        _formDataFromExif.recipeData,
         _formDataFromExif.film,
-      )
+      ) as Promise<string | undefined>)
       : undefined,
     addAiTextToFormData({
       formData: _formDataFromExif,
