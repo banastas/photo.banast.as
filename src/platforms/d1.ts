@@ -20,7 +20,9 @@ export const getD1Database = (): D1Database => {
     if (typeof process !== 'undefined' && (process as any).env?.DB) {
       db = (process as any).env.DB;
     } else {
-      throw new Error('D1 database not initialized. Call setD1Database() first.');
+      throw new Error(
+        'D1 database not initialized. Call setD1Database() first.',
+      );
     }
   }
   return db;
@@ -31,13 +33,16 @@ export interface QueryResult<T = any> {
   rowCount: number;
 }
 
-// Convert PostgreSQL parameterized query ($1, $2) to SQLite positional (?, ?)
-const convertQueryToSQLite = (queryString: string, values: Primitive[]): { query: string, values: Primitive[] } => {
+// Convert PostgreSQL parameterized query ($1, $2) to SQLite (?, ?)
+const convertQueryToSQLite = (
+  queryString: string,
+  values: Primitive[],
+): { query: string, values: Primitive[] } => {
   let converted = queryString;
-  let convertedValues = [...values];
+  const convertedValues = [...values];
 
   // Handle PostgreSQL ANY(array) syntax for tags
-  // PostgreSQL: WHERE ?=ANY(tags) becomes SQLite: WHERE tags LIKE '%"tag"%'
+  // PostgreSQL: WHERE ?=ANY(tags) becomes SQLite JSON search
   // Tags are stored as JSON array in SQLite
   const anyMatch = /\?\s*=\s*ANY\s*\(\s*(\w+)\s*\)/gi;
   let anyMatchResult;
@@ -45,10 +50,11 @@ const convertQueryToSQLite = (queryString: string, values: Primitive[]): { query
 
   while ((anyMatchResult = anyMatch.exec(queryString)) !== null) {
     const columnName = anyMatchResult[1];
-    const matchIndex = Math.floor((anyMatchResult.index + valueOffset) / queryString.length * convertedValues.length);
 
     // Replace with JSON search - SQLite json_each
-    const replacement = `EXISTS (SELECT 1 FROM json_each(${columnName}) WHERE json_each.value = ?)`;
+    const replacement =
+      `EXISTS (SELECT 1 FROM json_each(${columnName}) ` +
+      `WHERE json_each.value = ?)`;
     converted = converted.replace(anyMatchResult[0], replacement);
     valueOffset += replacement.length - anyMatchResult[0].length;
   }
@@ -57,25 +63,34 @@ const convertQueryToSQLite = (queryString: string, values: Primitive[]): { query
   converted = converted
     // Replace $1, $2, etc. with ?
     .replace(/\$\d+/g, '?')
-    // Replace ILIKE with LIKE (SQLite is case-insensitive by default with NOCASE collation)
+    // Replace ILIKE with LIKE (SQLite is case-insensitive)
     .replace(/ILIKE/gi, 'LIKE')
     // Replace CONCAT with || operator
-    .replace(/CONCAT\((.*?)\)/g, (_, args) => args.replace(/,\s*/g, ' || '))
-    // Replace EXTRACT(YEAR FROM field) with strftime('%Y', field)
-    .replace(/EXTRACT\s*\(\s*YEAR\s+FROM\s+(\w+)\s*\)/gi, "CAST(strftime('%Y', $1) AS INTEGER)")
+    .replace(/CONCAT\((.*?)\)/g, (_, args) =>
+      args.replace(/,\s*/g, ' || '))
+    // Replace EXTRACT(YEAR FROM field) with strftime
+    .replace(
+      /EXTRACT\s*\(\s*YEAR\s+FROM\s+(\w+)\s*\)/gi,
+      'CAST(strftime(\'%Y\', $1) AS INTEGER)',
+    )
     // Replace PostgreSQL INTERVAL with SQLite datetime
-    .replace(/\(now\(\) - INTERVAL '(\d+) days'\)/gi, "datetime('now', '-$1 days')")
-    .replace(/\(SELECT MAX\((.*?)\) - INTERVAL '(\d+) days' FROM (.*?)\)/gi, "datetime((SELECT MAX($1) FROM $3), '-$2 days')")
-    // Replace REGEXP_REPLACE with custom SQLite approach
-    // For parameterization, we'll handle this at application level
-    // REGEXP_REPLACE doesn't exist in standard SQLite
+    .replace(
+      /\(now\(\) - INTERVAL '(\d+) days'\)/gi,
+      'datetime(\'now\', \'-$1 days\')',
+    )
+    .replace(
+      /\(SELECT MAX\((.*?)\) - INTERVAL '(\d+) days' FROM (.*?)\)/gi,
+      'datetime((SELECT MAX($1) FROM $3), \'-$2 days\')',
+    )
+    // Replace REGEXP_REPLACE (doesn't exist in SQLite)
     .replace(/REGEXP_REPLACE\s*\([^)]+\)/gi, (match) => {
-      // For now, just return the field name - parameterization happens at app level
-      const fieldMatch = match.match(/REGEXP_REPLACE\s*\(\s*REGEXP_REPLACE\s*\([^,]+,\s*([^,)]+)/);
+      const fieldMatch = match.match(
+        /REGEXP_REPLACE\s*\(\s*REGEXP_REPLACE\s*\([^,]+,\s*([^,)]+)/,
+      );
       return fieldMatch ? fieldMatch[1].trim() : match;
     })
     // Replace NOW() with datetime('now')
-    .replace(/NOW\(\)/gi, "datetime('now')")
+    .replace(/NOW\(\)/gi, 'datetime(\'now\')')
     // Replace IS NOT TRUE with != 1 (SQLite uses integers for booleans)
     .replace(/(\w+)\s+IS NOT TRUE/gi, '($1 IS NULL OR $1 != 1)')
     .replace(/(\w+)\s+IS TRUE/gi, '$1 = 1')
@@ -96,11 +111,13 @@ export const query = async <T = any>(
 
   try {
     // Convert PostgreSQL query to SQLite
-    const { query: sqliteQuery, values: convertedValues } = convertQueryToSQLite(queryString, values);
+    const { query: sqliteQuery, values: convertedValues } =
+      convertQueryToSQLite(queryString, values);
 
     // D1 uses ? for parameters, and we've already converted
     // Filter out undefined values
-    const cleanValues = convertedValues.map(v => v === undefined ? null : v);
+    const cleanValues = convertedValues.map(v =>
+      v === undefined ? null : v);
 
     // Execute query
     const statement = database.prepare(sqliteQuery);
