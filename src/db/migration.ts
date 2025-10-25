@@ -1,4 +1,4 @@
-import { query, sql } from '@/platforms/postgres';
+import { query, sql } from '@/platforms/database';
 
 interface Migration {
   label: string

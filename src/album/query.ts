@@ -1,5 +1,5 @@
 import { safelyQuery } from '@/db/query';
-import { query, sql } from '@/platforms/postgres';
+import { query, sql } from '@/platforms/database';
 import { generateManyToManyValues } from '@/db';
 import { Album, Albums, parseAlbumFromDb } from '.';
 

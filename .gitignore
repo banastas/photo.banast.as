@@ -36,3 +36,15 @@ next-env.d.ts
 
 # temp files
 temp.jpg
+
+# Cloudflare
+.wrangler/
+.dev.vars
+wrangler.toml.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
