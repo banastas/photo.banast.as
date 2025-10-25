@@ -4,12 +4,11 @@ import { PATH_ROOT } from '@/app/path';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
-import { generateMetaForRecipe } from '@/recipe';
+import { generateMetaForRecipe, type Recipes } from '@/recipe';
 import RecipeOverview from '@/recipe/RecipeOverview';
 import { getPhotosRecipeDataCached } from '@/recipe/data';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 import { getAppText } from '@/i18n/state/server';
-import type { Recipes } from '@/recipe';
 
 const getPhotosRecipeDataCachedCached = cache(getPhotosRecipeDataCached);
 

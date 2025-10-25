@@ -1,4 +1,4 @@
-import { generateMetaForFocalLength, getFocalLengthFromString } from '@/focal';
+import { generateMetaForFocalLength, getFocalLengthFromString, type FocalLengths } from '@/focal';
 import FocalLengthOverview from '@/focal/FocalLengthOverview';
 import { getPhotosFocalLengthDataCached } from '@/focal/data';
 import { INFINITE_SCROLL_GRID_INITIAL } from '@/photo';
@@ -19,7 +19,7 @@ const getPhotosFocalDataCachedCached = cache((focal: number) =>
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'focal-lengths',
   'page',
-  getUniqueFocalLengths,
+  () => getUniqueFocalLengths() as Promise<FocalLengths>,
   focalLengths => focalLengths
     .map(({ focal }) => ({ focal: focal.toString() })),
 );
