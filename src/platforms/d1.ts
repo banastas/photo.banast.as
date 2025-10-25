@@ -46,7 +46,6 @@ const convertQueryToSQLite = (
   // Tags are stored as JSON array in SQLite
   const anyMatch = /\?\s*=\s*ANY\s*\(\s*(\w+)\s*\)/gi;
   let anyMatchResult;
-  let valueOffset = 0;
 
   while ((anyMatchResult = anyMatch.exec(queryString)) !== null) {
     const columnName = anyMatchResult[1];
