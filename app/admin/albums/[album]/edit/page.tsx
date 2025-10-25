@@ -7,6 +7,7 @@ import { getAlbumFromSlug } from '@/album/query';
 import AdminAlbumBadge from '@/admin/AdminAlbumBadge';
 import AdminAlbumForm from '@/admin/AdminAlbumForm';
 import { HAS_LOCATION_SERVICES } from '@/app/config';
+import type { Album } from '@/album';
 
 const MAX_PHOTO_TO_SHOW = 6;
 
@@ -21,11 +22,9 @@ export default async function AlbumPageEdit({
 
   const albumSlug = decodeURIComponent(albumFromParams);
 
-  const albumOrUndefined = await getAlbumFromSlug(albumSlug);
+  const album = await getAlbumFromSlug(albumSlug) as Album;
 
-  if (!albumOrUndefined) { redirect(PATH_ADMIN); }
-
-  const album = albumOrUndefined;
+  if (!album) { redirect(PATH_ADMIN); }
 
   const [
     { count },
