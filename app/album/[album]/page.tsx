@@ -86,7 +86,7 @@ export default async function AlbumPage({
 
   const photos = await getPhotos({ album });
 
-  const tags = await getTagsForAlbum(album.id);
+  const tags = await getTagsForAlbum(album.id) as string[];
 
   return (
     <AlbumOverview {...{
