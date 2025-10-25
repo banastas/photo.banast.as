@@ -32,9 +32,10 @@ export async function GET(_req: Request, ctx: any) {
 
   // Fallback: if site uses a stable origin for originals
   if (!full_image_url) {
-    const pattern =
-      /https?:\/\/photos\.banast\.as\/photo-[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp)/i;
-    const m2 = html.match(pattern);
+    const patternStr =
+      'https?://photos\\.banast\\.as/photo-[A-Za-z0-9_-]+' +
+      '\\.(?:jpg|jpeg|png|webp)';
+    const m2 = html.match(new RegExp(patternStr, 'i'));
     if (m2) full_image_url = m2[0];
   }
 

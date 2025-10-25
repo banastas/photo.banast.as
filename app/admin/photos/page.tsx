@@ -34,7 +34,7 @@ export default async function AdminPhotosPage() {
     getPhotosMetaCached({ hidden: 'include'})
       .then(({ count }) => count)
       .catch(() => 0),
-    getPhotosInNeedOfUpdateCount()
+    (getPhotosInNeedOfUpdateCount() as Promise<number>)
       .catch(() => 0),
     DEBUG_PHOTO_BLOBS
       ? getStoragePhotoUrlsNoStore()
