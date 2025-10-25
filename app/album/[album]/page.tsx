@@ -36,7 +36,7 @@ export async function generateMetadata({
 
   const albumSlug = decodeURIComponent(albumFromParams);
 
-  const album = await getAlbumFromSlug(albumSlug);
+  const album = await getAlbumFromSlug(albumSlug) as Album | undefined;
 
   if (!album) { return {}; }
 
@@ -80,7 +80,7 @@ export default async function AlbumPage({
 
   const albumSlug = decodeURIComponent(albumFromParams);
 
-  const album = await getAlbumFromSlug(albumSlug);
+  const album = await getAlbumFromSlug(albumSlug) as Album | undefined;
 
   if (!album) { redirect(PATH_ROOT); }
 

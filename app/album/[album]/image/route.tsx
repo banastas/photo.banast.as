@@ -9,6 +9,7 @@ import { getImageResponseCacheControlHeaders } from '@/image-response/cache';
 import { staticallyGenerateCategoryIfConfigured } from '@/app/static';
 import AlbumImageResponse from '@/album/AlbumImageResponse';
 import { getAlbumFromSlug, getAlbumsWithMeta } from '@/album/query';
+import type { Album } from '@/album';
 
 export const generateStaticParams = staticallyGenerateCategoryIfConfigured(
   'albums',
@@ -23,7 +24,9 @@ export async function GET(
 ) {
   const { album: albumParam } = await context.params;
 
-  const album = await getAlbumFromSlug(decodeURIComponent(albumParam));
+  const album = await getAlbumFromSlug(
+    decodeURIComponent(albumParam),
+  ) as Album | undefined;
 
   if (!album) { return new Response('Album not found', { status: 404 }); }
 
