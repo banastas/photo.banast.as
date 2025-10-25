@@ -24,4 +24,6 @@ export type { QueryResult } from './postgres';
 export const setD1Database = USE_D1 ? dbAdapter.setD1Database : undefined;
 export const getD1Database = USE_D1 ? dbAdapter.getD1Database : undefined;
 
-console.log(`[Database] Using ${USE_D1 ? 'Cloudflare D1 (SQLite)' : 'PostgreSQL'}`);
+console.log(
+  `[Database] Using ${USE_D1 ? 'Cloudflare D1 (SQLite)' : 'PostgreSQL'}`,
+);
